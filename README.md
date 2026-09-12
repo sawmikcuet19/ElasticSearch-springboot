@@ -158,8 +158,8 @@ Two ways to query Elasticsearch:
 ```mermaid
 flowchart LR
     subgraph METHOD1["Method 1: Spring Data Derived Queries"]
-        A1["findByName(\"Laptop\")"]
-        A2["findByCategory(\"Electronics\")"]
+        A1["findByName('Laptop')"]
+        A2["findByCategory('Electronics')"]
         A3["findByPriceBetween(100, 500)"]
         A1 & A2 & A3 -->|"Auto-generated"| A4["Elasticsearch Query"]
     end
