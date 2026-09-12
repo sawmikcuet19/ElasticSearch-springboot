@@ -535,7 +535,7 @@ Search across multiple text fields using `multi_match`. Elasticsearch analyzes t
 
 ```mermaid
 flowchart LR
-    Q["query: \"programming\""] --> ANALYZE["Standard Analyzer\n\"programming\""]
+    Q["query: 'programming'"] --> ANALYZE["Standard Analyzer\n'programming'"]
     ANALYZE --> MATCH["Match against\nname + description fields"]
     MATCH --> RESULT["Results:\nBook (score: 1.5)"]
 
@@ -553,7 +553,7 @@ Tolerates typos. Uses `match` query with `fuzziness: AUTO` so "Lapto" matches "L
 
 ```mermaid
 flowchart LR
-    Q["query: \"Lapto\""] --> ANALYZE["Standard Analyzer\n\"lapto\""]
+    Q["query: 'Lapto'"] --> ANALYZE["Standard Analyzer\n'lapto'"]
     ANALYZE --> FUZZY["Fuzzy Match\nedit distance: 1"]
     FUZZY -->|"lapto → laptop\n(insert 'p')"| RESULT["Results:\nLaptop (score: 0.93)"]
 
@@ -571,7 +571,7 @@ Pattern matching on keyword fields. "Pho*" matches "Phone".
 
 ```mermaid
 flowchart LR
-    Q["pattern: \"Pho*\"] --> FIELD["Match against\nname.keyword field"]
+    Q["pattern: 'Pho*'] --> FIELD["Match against\nname.keyword field"]
     FIELD --> WILDCARD["Wildcard Match\n(Pho → Phone)"]
     WILDCARD --> RESULT["Results:\nPhone"]
 
@@ -589,7 +589,7 @@ Combine multiple conditions with `must`, `filter`, and `range`.
 
 ```mermaid
 flowchart TD
-    Q["Bool Query"] --> MUST["must:\nname matches \"Laptop\""]
+    Q["Bool Query"] --> MUST["must:\nname matches 'Laptop'"]
     Q --> FILTER["filter:\nprice >= 500 AND price <= 2000"]
     Q --> SORT["sort:\nby price ASC"]
 
@@ -615,9 +615,9 @@ Returns matching text snippets wrapped in `<em>` tags.
 
 ```mermaid
 flowchart LR
-    Q["query: \"gaming\""] --> SEARCH["multi_match on\nname + description"]
+    Q["query: 'gaming'"] --> SEARCH["multi_match on\nname + description"]
     SEARCH --> HIGHLIGHT["Highlight:\npre = <em>\npost = </em>"]
-    HIGHLIGHT --> RESULT["Results:\n\"<em>gaming</em> laptop\""]
+    HIGHLIGHT --> RESULT["Results:\n'<em>gaming</em> laptop'"]
 
     style Q fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
     style SEARCH fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
