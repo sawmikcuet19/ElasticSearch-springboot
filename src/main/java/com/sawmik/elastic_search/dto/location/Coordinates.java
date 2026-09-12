@@ -1,0 +1,14 @@
+package com.sawmik.elastic_search.dto.location;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Coordinates {
+
+    private double lat;
+    private double lon;
+}
