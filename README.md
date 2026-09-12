@@ -41,9 +41,9 @@ Every request enters through the client and hits the Spring Boot application on 
 
 ```mermaid
 flowchart LR
-    CLIENT["🌐 Client\n(Browser / Postman / curl)"]
-    APP["Spring Boot App\nlocalhost:8080"]
-    ES["Elasticsearch\nlocalhost:9200"]
+    CLIENT["🌐 Client<br/>(Browser / Postman / curl)"]
+    APP["Spring Boot App<br/>localhost:8080"]
+    ES["Elasticsearch<br/>localhost:9200"]
 
     CLIENT -->|"HTTP Request"| APP
     APP -->|"Query / Index"| ES
@@ -63,7 +63,7 @@ Before reaching any controller, the request passes through Spring Security. The 
 flowchart TD
     REQ([Incoming Request]) --> JWT{"Has JWT Token?"}
 
-    JWT -->|"No + Public Endpoint\n(/api/auth/**)"| PERMIT["Access Granted"]
+    JWT -->|"No + Public Endpoint<br/>(/api/auth/**)"| PERMIT["Access Granted"]
     JWT -->|"No + Protected Endpoint"| DENY["401 Unauthorized"]
     JWT -->|"Yes"| VALIDATE{"Token Valid?"}
 
@@ -93,17 +93,17 @@ The request is routed to the appropriate controller based on the URL path. Each 
 flowchart TD
     FILTER["Security Filter passes request"] --> ROUTE{"URL Path?"}
 
-    ROUTE -->|"/api/auth/*"| AUTH_CTRL["AuthController\n(Register / Login)"]
+    ROUTE -->|"/api/auth/*"| AUTH_CTRL["AuthController<br/>(Register / Login)"]
     ROUTE -->|"/api/users/*"| USER_CTRL["UserController"]
-    ROUTE -->|"/api/products"| PROD_CTRL["ProductController\n(CRUD)"]
-    ROUTE -->|"/api/products/search/*"| PROD_SEARCH["ProductSearchController\n(Queries)"]
-    ROUTE -->|"/api/products/admin/*"| PROD_ADMIN["ProductAdminController\n(Index Mgmt)"]
-    ROUTE -->|"/api/articles"| ART_CTRL["ArticleController\n(CRUD)"]
+    ROUTE -->|"/api/products"| PROD_CTRL["ProductController<br/>(CRUD)"]
+    ROUTE -->|"/api/products/search/*"| PROD_SEARCH["ProductSearchController<br/>(Queries)"]
+    ROUTE -->|"/api/products/admin/*"| PROD_ADMIN["ProductAdminController<br/>(Index Mgmt)"]
+    ROUTE -->|"/api/articles"| ART_CTRL["ArticleController<br/>(CRUD)"]
     ROUTE -->|"/api/articles/search/*"| ART_SEARCH["ArticleSearchController"]
-    ROUTE -->|"/api/logs"| LOG_CTRL["LogController\n(CRUD)"]
+    ROUTE -->|"/api/logs"| LOG_CTRL["LogController<br/>(CRUD)"]
     ROUTE -->|"/api/logs/search/*"| LOG_SEARCH["LogSearchController"]
-    ROUTE -->|"/api/locations"| LOC_CTRL["LocationController\n(CRUD)"]
-    ROUTE -->|"/api/locations/search/*"| LOC_SEARCH["LocationSearchController\n(Geo Queries)"]
+    ROUTE -->|"/api/locations"| LOC_CTRL["LocationController<br/>(CRUD)"]
+    ROUTE -->|"/api/locations/search/*"| LOC_SEARCH["LocationSearchController<br/>(Geo Queries)"]
 
     style FILTER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
     style AUTH_CTRL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
@@ -129,16 +129,16 @@ Controllers delegate to services. Each domain has a **CRUD service** and a separ
 flowchart TD
     CTRL["Controller"] --> DECIDE{"Operation Type?"}
 
-    DECIDE -->|"Create / Update /\nDelete / Find All"| CRUD["CRUD Service\n(ProductService, etc.)"]
-    DECIDE -->|"Advanced Search /\nAggregations / Geo"| SEARCH["Search Service\n(ProductSearchService, etc.)"]
-    DECIDE -->|"Index Management\n(create/delete index)"| INDEX["Index Service\n(ProductIndexService)"]
+    DECIDE -->|"Create / Update /<br/>Delete / Find All"| CRUD["CRUD Service<br/>(ProductService, etc.)"]
+    DECIDE -->|"Advanced Search /<br/>Aggregations / Geo"| SEARCH["Search Service<br/>(ProductSearchService, etc.)"]
+    DECIDE -->|"Index Management<br/>(create/delete index)"| INDEX["Index Service<br/>(ProductIndexService)"]
 
-    CRUD --> REPO["Repository\n(Spring Data ES)"]
-    SEARCH --> OPS["ElasticsearchOperations\n(NativeQuery)"]
+    CRUD --> REPO["Repository<br/>(Spring Data ES)"]
+    SEARCH --> OPS["ElasticsearchOperations<br/>(NativeQuery)"]
     INDEX --> OPS
 
-    REPO -->|"Derived Queries\n(findByName, etc.)"| ES[(Elasticsearch)]
-    OPS -->|"Native Queries\n(bool, highlight, agg)"| ES
+    REPO -->|"Derived Queries<br/>(findByName, etc.)"| ES[(Elasticsearch)]
+    OPS -->|"Native Queries<br/>(bool, highlight, agg)"| ES
 
     style CTRL fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
     style CRUD fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
@@ -165,11 +165,11 @@ flowchart LR
     end
 
     subgraph METHOD2["Method 2: Native Queries"]
-        B1["Bool Query\nmust + filter + range"]
-        B2["Highlight Query\nwith pre/post tags"]
-        B3["Aggregation\navg, max, terms"]
-        B4["Geo Query\ngeo_distance"]
-        B1 & B2 & B3 & B4 -->|"Manual JSON\nor Java Client"| B5["Elasticsearch Query"]
+        B1["Bool Query<br/>must + filter + range"]
+        B2["Highlight Query<br/>with pre/post tags"]
+        B3["Aggregation<br/>avg, max, terms"]
+        B4["Geo Query<br/>geo_distance"]
+        B1 & B2 & B3 & B4 -->|"Manual JSON<br/>or Java Client"| B5["Elasticsearch Query"]
     end
 
     A4 --> ES[(Elasticsearch)]
@@ -535,9 +535,9 @@ Search across multiple text fields using `multi_match`. Elasticsearch analyzes t
 
 ```mermaid
 flowchart LR
-    Q["query: 'programming'"] --> ANALYZE["Standard Analyzer\n'programming'"]
-    ANALYZE --> MATCH["Match against\nname + description fields"]
-    MATCH --> RESULT["Results:\nBook (score: 1.5)"]
+    Q["query: 'programming'"] --> ANALYZE["Standard Analyzer<br/>'programming'"]
+    ANALYZE --> MATCH["Match against<br/>name + description fields"]
+    MATCH --> RESULT["Results:<br/>Book (score: 1.5)"]
 
     style Q fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
     style ANALYZE fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
@@ -553,9 +553,9 @@ Tolerates typos. Uses `match` query with `fuzziness: AUTO` so "Lapto" matches "L
 
 ```mermaid
 flowchart LR
-    Q["query: 'Lapto'"] --> ANALYZE["Standard Analyzer\n'lapto'"]
-    ANALYZE --> FUZZY["Fuzzy Match\nedit distance: 1"]
-    FUZZY -->|"lapto → laptop\n(insert 'p')"| RESULT["Results:\nLaptop (score: 0.93)"]
+    Q["query: 'Lapto'"] --> ANALYZE["Standard Analyzer<br/>'lapto'"]
+    ANALYZE --> FUZZY["Fuzzy Match<br/>edit distance: 1"]
+    FUZZY -->|"lapto → laptop<br/>(insert 'p')"| RESULT["Results:<br/>Laptop (score: 0.93)"]
 
     style Q fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
     style ANALYZE fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
@@ -571,9 +571,9 @@ Pattern matching on keyword fields. "Pho*" matches "Phone".
 
 ```mermaid
 flowchart LR
-    Q["pattern: 'Pho*'] --> FIELD["Match against\nname.keyword field"]
-    FIELD --> WILDCARD["Wildcard Match\n(Pho → Phone)"]
-    WILDCARD --> RESULT["Results:\nPhone"]
+    Q["pattern: Pho*"] --> FIELD["Match against name.keyword field"]
+    FIELD --> WILDCARD["Wildcard Match: Pho to Phone"]
+    WILDCARD --> RESULT["Results: Phone"]
 
     style Q fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
     style FIELD fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
@@ -589,15 +589,15 @@ Combine multiple conditions with `must`, `filter`, and `range`.
 
 ```mermaid
 flowchart TD
-    Q["Bool Query"] --> MUST["must:\nname matches 'Laptop'"]
-    Q --> FILTER["filter:\nprice >= 500 AND price <= 2000"]
-    Q --> SORT["sort:\nby price ASC"]
+    Q["Bool Query"] --> MUST["must:<br/>name matches 'Laptop'"]
+    Q --> FILTER["filter:<br/>price >= 500 AND price <= 2000"]
+    Q --> SORT["sort:<br/>by price ASC"]
 
     MUST --> EXECUTE["Execute"]
     FILTER --> EXECUTE
     SORT --> EXECUTE
 
-    EXECUTE --> RESULT["Results:\nLaptop ($999.99)\nPhone ($699.99)"]
+    EXECUTE --> RESULT["Results:<br/>Laptop ($999.99)<br/>Phone ($699.99)"]
 
     style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
     style MUST fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
@@ -615,9 +615,9 @@ Returns matching text snippets wrapped in `<em>` tags.
 
 ```mermaid
 flowchart LR
-    Q["query: 'gaming'"] --> SEARCH["multi_match on\nname + description"]
-    SEARCH --> HIGHLIGHT["Highlight:\npre = <em>\npost = </em>"]
-    HIGHLIGHT --> RESULT["Results:\n'<em>gaming</em> laptop'"]
+    Q["query: 'gaming'"] --> SEARCH["multi_match on<br/>name + description"]
+    SEARCH --> HIGHLIGHT["Highlight:<br/>pre = <em><br/>post = </em>"]
+    HIGHLIGHT --> RESULT["Results:<br/>'<em>gaming</em> laptop'"]
 
     style Q fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
     style SEARCH fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
@@ -633,13 +633,13 @@ Compute statistics and group data without returning individual documents.
 
 ```mermaid
 flowchart TD
-    QUERY["Search Query (page size: 1)"] --> AGG1["avg_price:\navg(price)"]
-    QUERY --> AGG2["max_price:\nmax(price)"]
-    QUERY --> AGG3["min_price:\nmin(price)"]
-    QUERY --> AGG4["sum_stock:\nsum(stockQuantity)"]
-    QUERY --> AGG5["by_category:\nterms on category"]
+    QUERY["Search Query (page size: 1)"] --> AGG1["avg_price:<br/>avg(price)"]
+    QUERY --> AGG2["max_price:<br/>max(price)"]
+    QUERY --> AGG3["min_price:<br/>min(price)"]
+    QUERY --> AGG4["sum_stock:<br/>sum(stockQuantity)"]
+    QUERY --> AGG5["by_category:<br/>terms on category"]
 
-    AGG1 --> RESULT["Aggregation Results:\navg_price: 583.32\nmax_price: 999.99\nmin_price: 49.99\nby_category: {Electronics: 2, Books: 1}"]
+    AGG1 --> RESULT["Aggregation Results:<br/>avg_price: 583.32<br/>max_price: 999.99<br/>min_price: 49.99<br/>by_category: {Electronics: 2, Books: 1}"]
     AGG2 --> RESULT
     AGG3 --> RESULT
     AGG4 --> RESULT
@@ -665,17 +665,17 @@ flowchart LR
     subgraph GEO_DISTANCE["Geo Distance Query"]
         A1["Point: lat=23.81, lon=90.41"]
         A2["Distance: 50km"]
-        A1 --> A3["Find all locations\nwithin 50km of Dhaka"]
+        A1 --> A3["Find all locations<br/>within 50km of Dhaka"]
         A2 --> A3
-        A3 --> A4["Dhaka Office\n(distance: 0.5km)"]
+        A3 --> A4["Dhaka Office<br/>(distance: 0.5km)"]
     end
 
     subgraph GEO_BBOX["Geo Bounding Box Query"]
         B1["Top-Left: 24, 91"]
         B2["Bottom-Right: 22, 90"]
-        B1 --> B3["Find all locations\ninside the rectangle"]
+        B1 --> B3["Find all locations<br/>inside the rectangle"]
         B2 --> B3
-        B3 --> B4["Dhaka Office\nChittagong Hub"]
+        B3 --> B4["Dhaka Office<br/>Chittagong Hub"]
     end
 
     style GEO_DISTANCE fill:#e8eaf6,stroke:#283593,stroke-width:2px,color:#000
@@ -688,9 +688,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    REQ["Request:\npage=0, size=2\nsortBy=price, direction=DESC"] --> PAGE["Spring Data\nPageRequest.of(0, 2, Sort.by(DESC, price))"]
-    PAGE --> ES["Elasticsearch:\nsize=2, from=0, sort=price desc"]
-    ES --> RESULT["Page Result:\ntotalElements: 3\npage 0 of 2\n[Phone $699, Laptop $999]"]
+    REQ["Request:<br/>page=0, size=2<br/>sortBy=price, direction=DESC"] --> PAGE["Spring Data<br/>PageRequest.of(0, 2, Sort.by(DESC, price))"]
+    PAGE --> ES["Elasticsearch:<br/>size=2, from=0, sort=price desc"]
+    ES --> RESULT["Page Result:<br/>totalElements: 3<br/>page 0 of 2<br/>[Phone $699, Laptop $999]"]
 
     style REQ fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
     style PAGE fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
