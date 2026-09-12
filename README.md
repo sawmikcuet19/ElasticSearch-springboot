@@ -12,11 +12,19 @@ A complete CRUD and advanced search application built with **Spring Boot 4.1.1**
 ## Table of Contents
 
 - [Architecture Overview](#architecture-overview)
+  - [Step 1: Client Sends Request](#step-1-client-sends-request)
+  - [Step 2: Security Layer Validates](#step-2-security-layer-validates)
+  - [Step 3: Controller Routes](#step-3-controller-routes)
+  - [Step 4: Service Processes](#step-4-service-processes)
+  - [Step 5: Repository Queries Elasticsearch](#step-5-repository-queries-elasticsearch)
 - [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
 - [Authentication Flow](#authentication-flow)
+  - [Step 1: Register](#step-1-register)
+  - [Step 2: Login](#step-2-login)
+  - [Step 3: Use JWT Token](#step-3-use-jwt-token)
 - [API Endpoints](#api-endpoints)
 - [Elasticsearch Features](#elasticsearch-features)
 - [Entity Relationship](#entity-relationship)
@@ -27,71 +35,149 @@ A complete CRUD and advanced search application built with **Spring Boot 4.1.1**
 
 ## Architecture Overview
 
+### Step 1: Client Sends Request
+
+Every request enters through the client and hits the Spring Boot application on port `8080`.
+
 ```mermaid
-flowchart TD
-    subgraph CLIENT["🌐 Client"]
-        A[HTTP Requests]
-    end
+flowchart LR
+    CLIENT["🌐 Client\n(Browser / Postman / curl)"]
+    APP["Spring Boot App\nlocalhost:8080"]
+    ES["Elasticsearch\nlocalhost:9200"]
 
-    subgraph SECURITY["🔒 Security Layer"]
-        B[JWT Authentication Filter]
-        C[Spring Security Filter Chain]
-    end
-
-    subgraph CONTROLLER["📡 Controller Layer"]
-        D[AuthController]
-        E[ProductController]
-        F[ArticleController]
-        G[LogController]
-        H[LocationController]
-        I[UserController]
-    end
-
-    subgraph SERVICE["⚙️ Service Layer"]
-        J[AuthService]
-        K[ProductService]
-        L[ProductSearchService]
-        M[ProductIndexService]
-        N[ArticleService]
-        O[ArticleSearchService]
-        P[LogService]
-        Q[LogSearchService]
-        R[LocationService]
-        S[LocationSearchService]
-    end
-
-    subgraph REPOSITORY["📦 Repository Layer"]
-        T[ProductRepository]
-        U[ArticleRepository]
-        V[LogEntryRepository]
-        W[LocationRepository]
-        X[UserRepository]
-    end
-
-    subgraph ELASTICSEARCH["🔍 Elasticsearch"]
-        Y[(ES Cluster 9.4.5)]
-    end
-
-    A --> B --> C
-    C --> D & E & F & G & H & I
-    D --> J
-    E --> K & L & M
-    F --> N & O
-    G --> P & Q
-    H --> R & S
-    K & L & M --> T
-    N & O --> U
-    P & Q --> V
-    R & S --> W
-    J --> X
-    T & U & V & W & X --> Y
+    CLIENT -->|"HTTP Request"| APP
+    APP -->|"Query / Index"| ES
 
     style CLIENT fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    style SECURITY fill:#fce4ec,stroke:#c62828,stroke-width:2px,color:#000
-    style CONTROLLER fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style SERVICE fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
-    style REPOSITORY fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
-    style ELASTICSEARCH fill:#fffde7,stroke:#f9a825,stroke-width:2px,color:#000
+    style APP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style ES fill:#fffde7,stroke:#f9a825,stroke-width:2px,color:#000
+```
+
+---
+
+### Step 2: Security Layer Validates
+
+Before reaching any controller, the request passes through Spring Security. The JWT filter checks if a valid token is attached.
+
+```mermaid
+flowchart TD
+    REQ([Incoming Request]) --> JWT{"Has JWT Token?"}
+
+    JWT -->|"No + Public Endpoint\n(/api/auth/**)"| PERMIT["Access Granted"]
+    JWT -->|"No + Protected Endpoint"| DENY["401 Unauthorized"]
+    JWT -->|"Yes"| VALIDATE{"Token Valid?"}
+
+    VALIDATE -->|"Yes"| ROLES{"Has Required Role?"}
+    VALIDATE -->|"No / Expired"| DENY2["403 Forbidden"]
+
+    ROLES -->|"Yes"| CONTINUE["Pass to Controller"]
+    ROLES -->|"No"| DENY3["403 Forbidden"]
+
+    PERMIT --> CONTINUE
+
+    style REQ fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style DENY fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
+    style DENY2 fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
+    style DENY3 fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
+    style CONTINUE fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style PERMIT fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+```
+
+---
+
+### Step 3: Controller Routes
+
+The request is routed to the appropriate controller based on the URL path. Each domain (product, article, log, location) has its own controllers split by responsibility.
+
+```mermaid
+flowchart TD
+    FILTER["Security Filter passes request"] --> ROUTE{"URL Path?"}
+
+    ROUTE -->|"/api/auth/*"| AUTH_CTRL["AuthController\n(Register / Login)"]
+    ROUTE -->|"/api/users/*"| USER_CTRL["UserController"]
+    ROUTE -->|"/api/products"| PROD_CTRL["ProductController\n(CRUD)"]
+    ROUTE -->|"/api/products/search/*"| PROD_SEARCH["ProductSearchController\n(Queries)"]
+    ROUTE -->|"/api/products/admin/*"| PROD_ADMIN["ProductAdminController\n(Index Mgmt)"]
+    ROUTE -->|"/api/articles"| ART_CTRL["ArticleController\n(CRUD)"]
+    ROUTE -->|"/api/articles/search/*"| ART_SEARCH["ArticleSearchController"]
+    ROUTE -->|"/api/logs"| LOG_CTRL["LogController\n(CRUD)"]
+    ROUTE -->|"/api/logs/search/*"| LOG_SEARCH["LogSearchController"]
+    ROUTE -->|"/api/locations"| LOC_CTRL["LocationController\n(CRUD)"]
+    ROUTE -->|"/api/locations/search/*"| LOC_SEARCH["LocationSearchController\n(Geo Queries)"]
+
+    style FILTER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style AUTH_CTRL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style USER_CTRL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style PROD_CTRL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style PROD_SEARCH fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style PROD_ADMIN fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style ART_CTRL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style ART_SEARCH fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style LOG_CTRL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style LOG_SEARCH fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style LOC_CTRL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style LOC_SEARCH fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+```
+
+---
+
+### Step 4: Service Processes
+
+Controllers delegate to services. Each domain has a **CRUD service** and a separate **Search service** for advanced queries.
+
+```mermaid
+flowchart TD
+    CTRL["Controller"] --> DECIDE{"Operation Type?"}
+
+    DECIDE -->|"Create / Update /\nDelete / Find All"| CRUD["CRUD Service\n(ProductService, etc.)"]
+    DECIDE -->|"Advanced Search /\nAggregations / Geo"| SEARCH["Search Service\n(ProductSearchService, etc.)"]
+    DECIDE -->|"Index Management\n(create/delete index)"| INDEX["Index Service\n(ProductIndexService)"]
+
+    CRUD --> REPO["Repository\n(Spring Data ES)"]
+    SEARCH --> OPS["ElasticsearchOperations\n(NativeQuery)"]
+    INDEX --> OPS
+
+    REPO -->|"Derived Queries\n(findByName, etc.)"| ES[(Elasticsearch)]
+    OPS -->|"Native Queries\n(bool, highlight, agg)"| ES
+
+    style CTRL fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style CRUD fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
+    style SEARCH fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
+    style INDEX fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
+    style REPO fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
+    style OPS fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
+    style ES fill:#fffde7,stroke:#f9a825,stroke-width:2px,color:#000
+```
+
+---
+
+### Step 5: Repository Queries Elasticsearch
+
+Two ways to query Elasticsearch:
+
+```mermaid
+flowchart LR
+    subgraph METHOD1["Method 1: Spring Data Derived Queries"]
+        A1["findByName(\"Laptop\")"]
+        A2["findByCategory(\"Electronics\")"]
+        A3["findByPriceBetween(100, 500)"]
+        A1 & A2 & A3 -->|"Auto-generated"| A4["Elasticsearch Query"]
+    end
+
+    subgraph METHOD2["Method 2: Native Queries"]
+        B1["Bool Query\nmust + filter + range"]
+        B2["Highlight Query\nwith pre/post tags"]
+        B3["Aggregation\navg, max, terms"]
+        B4["Geo Query\ngeo_distance"]
+        B1 & B2 & B3 & B4 -->|"Manual JSON\nor Java Client"| B5["Elasticsearch Query"]
+    end
+
+    A4 --> ES[(Elasticsearch)]
+    B5 --> ES
+
+    style METHOD1 fill:#e8eaf6,stroke:#283593,stroke-width:2px,color:#000
+    style METHOD2 fill:#fce4ec,stroke:#c62828,stroke-width:2px,color:#000
+    style ES fill:#fffde7,stroke:#f9a825,stroke-width:2px,color:#000
 ```
 
 ---
@@ -226,6 +312,10 @@ src/main/java/com/sawmik/elastic_search/
 
 ## Authentication Flow
 
+### Step 1: Register
+
+Create a new account. The password is hashed with BCrypt before storing.
+
 ```mermaid
 sequenceDiagram
     participant C as Client
@@ -235,49 +325,72 @@ sequenceDiagram
     participant PE as PasswordEncoder
     participant AM as AuthenticationManager
     participant JP as JwtTokenProvider
-    participant ES as Elasticsearch
 
-    rect rgb(232, 245, 233)
-    Note over C,ES: Registration Flow
     C->>AC: POST /api/auth/register
     AC->>AS: register(RegisterRequest)
-    AS->>UR: existsByUsername()
-    UR-->>AS: false
-    AS->>UR: existsByEmail()
-    UR-->>AS: false
-    AS->>PE: encode(password)
-    PE-->>AS: hashed_password
-    AS->>ES: save(User)
-    AS->>AM: authenticate(credentials)
-    AM-->>AS: Authentication
-    AS->>JP: generateToken(auth)
-    JP-->>AS: JWT token
-    AS-->>AC: AuthResponse(token)
-    AC-->>C: 200 OK + JWT
-    end
+    AS->>UR: existsByUsername("admin")
+    UR-->>AS: false (not taken)
+    AS->>UR: existsByEmail("admin@test.com")
+    UR-->>AS: false (not used)
+    AS->>PE: encode("password123")
+    PE-->>AS: "$2a$10$hashed..."
+    AS->>UR: save(new User with hashed password)
+    AS->>AM: authenticate(username, password)
+    AM-->>AS: Authentication object
+    AS->>JP: generateToken(authentication)
+    JP-->>AS: "eyJhbGciOi..."
+    AS-->>C: {"token": "eyJhbGciOi...", "username": "admin"}
+```
 
-    rect rgb(227, 242, 253)
-    Note over C,ES: Login Flow
+---
+
+### Step 2: Login
+
+Authenticate with existing credentials and receive a JWT token.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant AC as AuthController
+    participant AS as AuthService
+    participant AM as AuthenticationManager
+    participant JP as JwtTokenProvider
+    participant UR as UserRepository
+
     C->>AC: POST /api/auth/login
     AC->>AS: login(LoginRequest)
-    AS->>AM: authenticate(username, password)
-    AM-->>AS: Authentication
-    AS->>JP: generateToken(auth)
-    JP-->>AS: JWT token
-    AS->>UR: findByUsername()
-    UR-->>AS: User
-    AS-->>AC: AuthResponse(token)
-    AC-->>C: 200 OK + JWT
-    end
+    AS->>AM: authenticate("admin", "password123")
+    AM-->>AS: Authentication object (verified)
+    AS->>JP: generateToken(authentication)
+    JP-->>AS: "eyJhbGciOi..."
+    AS->>UR: findByUsername("admin")
+    UR-->>AS: User object
+    AS-->>C: {"token": "eyJhbGciOi...", "username": "admin", "role": "ADMIN"}
+```
 
-    rect rgb(252, 228, 236)
-    Note over C,ES: Authenticated Request
-    C->>C: Add Authorization: Bearer <token>
-    C->>AC: GET /api/products
-    AC->>AC: JwtAuthenticationFilter validates token
-    AC->>AC: Sets SecurityContext
-    AC-->>C: 200 OK + Data
-    end
+---
+
+### Step 3: Use JWT Token
+
+Attach the token to subsequent requests. The filter validates it on every call.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant F as JwtAuthenticationFilter
+    participant JP as JwtTokenProvider
+    participant SC as SecurityContext
+    participant CTRL as ProductController
+
+    C->>C: Set header: Authorization: Bearer eyJhbGciOi...
+    C->>F: GET /api/products
+    F->>JP: extractUsername("eyJhbGciOi...")
+    JP-->>F: "admin"
+    F->>F: Load UserDetails for "admin"
+    F->>SC: Set Authentication object
+    F->>CTRL: Forward request (now authenticated)
+    CTRL->>CTRL: Execute business logic
+    CTRL-->>C: 200 OK + Product data
 ```
 
 ---
@@ -416,82 +529,173 @@ sequenceDiagram
 
 ## Elasticsearch Features
 
-### Query Types Demonstrated
+### Feature 1: Full-Text Search
+
+Search across multiple text fields using `multi_match`. Elasticsearch analyzes the input (lowercases, tokenizes) and matches against analyzed content.
 
 ```mermaid
 flowchart LR
-    subgraph SEARCH["Search Query Types"]
-        A[Full-Text Search]
-        B[Fuzzy Search]
-        C[Wildcard Search]
-        D[Bool Query]
-        E[Highlight Search]
-        F[Aggregations]
-        G[Geo Queries]
-        H[Nested Queries]
-        I[Pagination & Sort]
-    end
+    Q["query: \"programming\""] --> ANALYZE["Standard Analyzer\n\"programming\""]
+    ANALYZE --> MATCH["Match against\nname + description fields"]
+    MATCH --> RESULT["Results:\nBook (score: 1.5)"]
 
-    subgraph PRODUCTS["Product Domain"]
-        A1["match / multi_match"]
-        B1["match + fuzziness: AUTO"]
-        C1["wildcard on keyword"]
-        D1["must + filter + range"]
-        E1["highlight tags"]
-        F1["avg, max, min, sum, terms"]
-        G1["geo_distance, geo_bounding_box"]
-        H1["nested reviews"]
-        I1["PageRequest + Sort"]
-    end
-
-    A --> A1
-    B --> B1
-    C --> C1
-    D --> D1
-    E --> E1
-    F --> F1
-    G --> G1
-    H --> H1
-    I --> I1
-
-    style SEARCH fill:#e8eaf6,stroke:#283593,stroke-width:2px,color:#000
-    style PRODUCTS fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
+    style Q fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
+    style ANALYZE fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style MATCH fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style RESULT fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
 ```
 
-### Search Flow
+---
+
+### Feature 2: Fuzzy Search
+
+Tolerates typos. Uses `match` query with `fuzziness: AUTO` so "Lapto" matches "Laptop".
+
+```mermaid
+flowchart LR
+    Q["query: \"Lapto\""] --> ANALYZE["Standard Analyzer\n\"lapto\""]
+    ANALYZE --> FUZZY["Fuzzy Match\nedit distance: 1"]
+    FUZZY -->|"lapto → laptop\n(insert 'p')"| RESULT["Results:\nLaptop (score: 0.93)"]
+
+    style Q fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
+    style ANALYZE fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style FUZZY fill:#fce4ec,stroke:#c62828,stroke-width:2px,color:#000
+    style RESULT fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+```
+
+---
+
+### Feature 3: Wildcard Search
+
+Pattern matching on keyword fields. "Pho*" matches "Phone".
+
+```mermaid
+flowchart LR
+    Q["pattern: \"Pho*\"] --> FIELD["Match against\nname.keyword field"]
+    FIELD --> WILDCARD["Wildcard Match\n(Pho → Phone)"]
+    WILDCARD --> RESULT["Results:\nPhone"]
+
+    style Q fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
+    style FIELD fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style WILDCARD fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
+    style RESULT fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+```
+
+---
+
+### Feature 4: Bool Query
+
+Combine multiple conditions with `must`, `filter`, and `range`.
 
 ```mermaid
 flowchart TD
-    START([Client Request]) --> VALIDATE{Valid JWT?}
-    VALIDATE -->|No| REJECT[401/403]
-    VALIDATE -->|Yes| ROUTE{Endpoint}
+    Q["Bool Query"] --> MUST["must:\nname matches \"Laptop\""]
+    Q --> FILTER["filter:\nprice >= 500 AND price <= 2000"]
+    Q --> SORT["sort:\nby price ASC"]
 
-    ROUTE -->|/search/fuzzy| FUZZY["match query + fuzziness:AUTO"]
-    ROUTE -->|/search/wildcard| WILDCARD["wildcard on keyword field"]
-    ROUTE -->|/search?fulltext| FULLTEXT["multi_match on name + description"]
-    ROUTE -->|/search/bool| BOOL["bool: must + filter + range"]
-    ROUTE -->|/search/highlight| HIGHLIGHT["multi_match + highlight params"]
-    ROUTE -->|/search/aggregations| AGG["agg: avg, max, min, sum, terms"]
-    ROUTE -->|/search/geo*| GEO["geo_distance / geo_bounding_box"]
+    MUST --> EXECUTE["Execute"]
+    FILTER --> EXECUTE
+    SORT --> EXECUTE
 
-    FUZZY --> EXECUTE[Execute NativeQuery]
-    WILDCARD --> EXECUTE
-    FULLTEXT --> EXECUTE
-    BOOL --> EXECUTE
-    HIGHLIGHT --> EXECUTE
-    AGG --> EXECUTE
-    GEO --> EXECUTE
+    EXECUTE --> RESULT["Results:\nLaptop ($999.99)\nPhone ($699.99)"]
 
-    EXECUTE --> MAPPER["Map SearchHits → Response"]
-    MAPPER --> RETURN([200 OK + Results])
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style MUST fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style FILTER fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style SORT fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
+    style EXECUTE fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
+    style RESULT fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+```
 
-    REJECT --> RETURN_ERR([Error Response])
+---
 
-    style START fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style REJECT fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
-    style RETURN fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
-    style RETURN_ERR fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
-    style EXECUTE fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
+### Feature 5: Highlight Search
+
+Returns matching text snippets wrapped in `<em>` tags.
+
+```mermaid
+flowchart LR
+    Q["query: \"gaming\""] --> SEARCH["multi_match on\nname + description"]
+    SEARCH --> HIGHLIGHT["Highlight:\npre = <em>\npost = </em>"]
+    HIGHLIGHT --> RESULT["Results:\n\"<em>gaming</em> laptop\""]
+
+    style Q fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
+    style SEARCH fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style HIGHLIGHT fill:#fce4ec,stroke:#c62828,stroke-width:2px,color:#000
+    style RESULT fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+```
+
+---
+
+### Feature 6: Aggregations
+
+Compute statistics and group data without returning individual documents.
+
+```mermaid
+flowchart TD
+    QUERY["Search Query (page size: 1)"] --> AGG1["avg_price:\navg(price)"]
+    QUERY --> AGG2["max_price:\nmax(price)"]
+    QUERY --> AGG3["min_price:\nmin(price)"]
+    QUERY --> AGG4["sum_stock:\nsum(stockQuantity)"]
+    QUERY --> AGG5["by_category:\nterms on category"]
+
+    AGG1 --> RESULT["Aggregation Results:\navg_price: 583.32\nmax_price: 999.99\nmin_price: 49.99\nby_category: {Electronics: 2, Books: 1}"]
+    AGG2 --> RESULT
+    AGG3 --> RESULT
+    AGG4 --> RESULT
+    AGG5 --> RESULT
+
+    style QUERY fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style AGG1 fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style AGG2 fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style AGG3 fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style AGG4 fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style AGG5 fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style RESULT fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+```
+
+---
+
+### Feature 7: Geo Queries
+
+Find locations by distance or bounding box.
+
+```mermaid
+flowchart LR
+    subgraph GEO_DISTANCE["Geo Distance Query"]
+        A1["Point: lat=23.81, lon=90.41"]
+        A2["Distance: 50km"]
+        A1 --> A3["Find all locations\nwithin 50km of Dhaka"]
+        A2 --> A3
+        A3 --> A4["Dhaka Office\n(distance: 0.5km)"]
+    end
+
+    subgraph GEO_BBOX["Geo Bounding Box Query"]
+        B1["Top-Left: 24, 91"]
+        B2["Bottom-Right: 22, 90"]
+        B1 --> B3["Find all locations\ninside the rectangle"]
+        B2 --> B3
+        B3 --> B4["Dhaka Office\nChittagong Hub"]
+    end
+
+    style GEO_DISTANCE fill:#e8eaf6,stroke:#283593,stroke-width:2px,color:#000
+    style GEO_BBOX fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
+```
+
+---
+
+### Feature 8: Pagination & Sort
+
+```mermaid
+flowchart LR
+    REQ["Request:\npage=0, size=2\nsortBy=price, direction=DESC"] --> PAGE["Spring Data\nPageRequest.of(0, 2, Sort.by(DESC, price))"]
+    PAGE --> ES["Elasticsearch:\nsize=2, from=0, sort=price desc"]
+    ES --> RESULT["Page Result:\ntotalElements: 3\npage 0 of 2\n[Phone $699, Laptop $999]"]
+
+    style REQ fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
+    style PAGE fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    style ES fill:#fffde7,stroke:#f9a825,stroke-width:2px,color:#000
+    style RESULT fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
 ```
 
 ---
